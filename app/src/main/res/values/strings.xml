@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">adapter_app_name</string>
+    <string name="admob_APPLICATION_ID">admob_app_id</string>
+    <string name="adapter_core_version">adapter_core_version_place</string>
+    <string name="id">adapter_id_place</string>
+</resources>
