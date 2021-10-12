@@ -56,14 +56,8 @@ public class FullscreenActivity extends AppCompatActivity {
     private WebView mWebView;
     private WebViewAssetLoader assetLoader;
     private ImageView imgPreloader;
+    private AppSingletone mAppSingletone;
 
-    //status section
-    private boolean fullscreen=true;
-
-    //section for admob variables
-    private AdView admobBANNER;
-    private InterstitialAd admobInterstitial;
-    private RewardedAd admobRewarded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,11 +67,21 @@ public class FullscreenActivity extends AppCompatActivity {
         setContentView(R.layout.activity_fullscreen);
         mContentView = findViewById(R.id.preloader);
 
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        // Set the content to appear under the system bars so that the
+                        // content doesn't resize when the system bars hide and show.
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        // Hide the nav bar and status bar
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
 
         imgPreloader = (ImageView) findViewById(R.id.preloader);
 
+        mAppSingletone = AppSingletone.getInstance(FullscreenActivity.this);
         mWebView = (WebView) findViewById(R.id.mWebView);
         assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -98,9 +102,9 @@ public class FullscreenActivity extends AppCompatActivity {
         mWebView.getSettings().setDomStorageEnabled(true);
         mWebView.getSettings().setDatabaseEnabled(true);
         mWebView.setLongClickable(false);
-
+        mWebView.setWebContentsDebuggingEnabled(true);
         mWebView.setHapticFeedbackEnabled(false);
-        mWebView.addJavascriptInterface(new WebAppInterface(this, FullscreenActivity.this), "ADAPTER");
+        mWebView.addJavascriptInterface(new ADAPTERBridge(this, FullscreenActivity.this, mWebView), "ADAPTER");
 
 
 
@@ -171,245 +175,6 @@ public class FullscreenActivity extends AppCompatActivity {
     }
 
 
-
-    public class WebAppInterface {
-
-        Context mContext;
-        Activity activity;
-
-        /** Instantiate the interface and set the context */
-        WebAppInterface(Context c, Activity a) {
-            mContext = c;
-            activity = a;
-        }
-
-        @JavascriptInterface
-        public void setOrientation(String orientation) {
-            final String orientationLower = orientation.toLowerCase();
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    switch(orientationLower) {
-                        case "landscape":
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                            break;
-                        case "portrait":
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                            break;
-                        case "unspecified":
-                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                            break;
-                        default:
-                            Toast toast = Toast.makeText(FullscreenActivity.this, "Unknown orientation value", Toast.LENGTH_SHORT);
-                            toast.show();
-                    }
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void onesignalInit(String ID) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    OneSignal.initWithContext(FullscreenActivity.this);
-                    OneSignal.setAppId(ID);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void admobBannerInit(String ID, String size) {
-            final String sizeLower = size.toLowerCase();
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    LinearLayout layout = (LinearLayout) findViewById(R.id.adBannerContainer);
-                    admobBANNER = new AdView(FullscreenActivity.this);
-
-                    switch(sizeLower) {
-                        case "banner":
-                            admobBANNER.setAdSize(AdSize.BANNER);
-                            break;
-                        case "large_banner":
-                            admobBANNER.setAdSize(AdSize.LARGE_BANNER);
-                            break;
-                        case "medium_rectangle":
-                            admobBANNER.setAdSize(AdSize.MEDIUM_RECTANGLE);
-                            break;
-                        default:
-                            Toast toast = Toast.makeText(FullscreenActivity.this, "Unknown banner size value", Toast.LENGTH_SHORT);
-                            toast.show();
-                    }
-                    admobBANNER.setAdUnitId(ID);
-                    layout.addView(admobBANNER);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void admobBannerLoad() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    AdRequest adRequest = new AdRequest.Builder().build();
-                    admobBANNER.loadAd(adRequest);
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void setStatusbarColor(String hexcolor) {
-            Window window = activity.getWindow();
-            window.setStatusBarColor(parseColor(hexcolor));
-        }
-
-        @JavascriptInterface
-        public void admobInterestialLoad(String ID) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    AdRequest adRequest = new AdRequest.Builder().build();
-
-                    InterstitialAd.load(FullscreenActivity.this,ID, adRequest,
-                            new InterstitialAdLoadCallback() {
-                                @Override
-                                public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                                    // The mInterstitialAd reference will be null until
-                                    // an ad is loaded.
-                                    admobInterstitial = interstitialAd;
-                                    mWebView.loadUrl("javascript:(function f() {" +
-                                            "if (c2_callFunction)\n" +
-                                            "    c2_callFunction(\"onAdmobInterestialLoaded\");"+
-                                            "})()");
-                                }
-
-                                @Override
-                                public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                                    // Handle the error
-                                    Toast toast = Toast.makeText(FullscreenActivity.this, "Cant load interestial", Toast.LENGTH_SHORT);
-                                    toast.show();
-                                    admobInterstitial = null;
-                                }
-                            });
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void admobInterestialShow() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (admobInterstitial != null) {
-                        admobInterstitial.show(FullscreenActivity.this);
-                    }
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void admobRewardedLoad(String ID) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    AdRequest adRequest = new AdRequest.Builder().build();
-
-                    RewardedAd.load(FullscreenActivity.this, ID,
-                            adRequest, new RewardedAdLoadCallback() {
-                                @Override
-                                public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                                    Toast toast = Toast.makeText(FullscreenActivity.this, "Cant load reward", Toast.LENGTH_SHORT);
-                                    toast.show();
-                                    admobRewarded = null;
-                                }
-
-                                @Override
-                                public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
-                                    admobRewarded = rewardedAd;;
-                                    mWebView.loadUrl("javascript:(function f() {" +
-                                            "if (c2_callFunction)\n" +
-                                            "    c2_callFunction(\"onAdmobRewardedLoaded\");"+
-                                            "})()");
-
-                                }
-                            });
-
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void admobRewardedShow() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (admobRewarded != null) {
-                        Activity activityContext = FullscreenActivity.this;
-                        admobRewarded.show(activityContext, new OnUserEarnedRewardListener() {
-                            @Override
-                            public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
-                                int rewardAmount = rewardItem.getAmount();
-                                String rewardType = rewardItem.getType();
-                                updatereward();
-                            }
-                        });
-                    }
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void setFullscreenOff() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    fullscreen = false;
-                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-
-                }
-            });
-        }
-
-        @JavascriptInterface
-        public void setFullscreenOn() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    fullscreen = true;
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                }
-            });
-        }
-
-
-        @JavascriptInterface
-        public void exit() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                finishAndRemoveTask();
-            } else {
-                finish();
-            }
-        }
-    }
-
-    public void updatereward() {
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mWebView.loadUrl("javascript:(function f() {" +
-                        "if (c2_callFunction)\n" +
-                        "    c2_callFunction(\"onAdmobRewarded\");" +
-                        "})()");
-            }
-        }, 1000);
-
-    }
-
     @Override
     protected void onDestroy() {
         /*if (mWebView != null)
@@ -420,13 +185,43 @@ public class FullscreenActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (fullscreen) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        } else {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        View decorView = getWindow().getDecorView();
+        switch(mAppSingletone.getFullscreenMode()) {
+            case "Full":
+                decorView.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                // Set the content to appear under the system bars so that the
+                                // content doesn't resize when the system bars hide and show.
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                // Hide the nav bar and status bar
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN);
+                break;
+            case "Partially":
+                decorView.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                break;
+            case "Off":
+                decorView.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                break;
+            default:
+                if (mAppSingletone.isDebug()) {
+                    Toast toast = Toast.makeText(FullscreenActivity.this, "Unknown fullscreen mode", Toast.LENGTH_SHORT);
+                    toast.show();
+                    return;
+                }
         }
     }
 

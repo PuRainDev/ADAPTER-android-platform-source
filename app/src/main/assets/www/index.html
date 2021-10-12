@@ -16,8 +16,9 @@
         <img style="height: 300px" src="loading.gif">
         <h1>ADAPTER demo example</h1>
         <p>Screen</p>
-        <button onclick="ADAPTER.setFullscreenOff()">Exit fullscreen</button>
-        <button onclick="ADAPTER.setFullscreenOn()">Enter fullscreen</button>
+        <button onclick="ADAPTER.setFullscreen('Full')">Enter fullscreen</button>
+        <button onclick="ADAPTER.setFullscreen('Partially')">Enter partiall fullscreen</button>
+        <button onclick="ADAPTER.setFullscreen('Off')">Exit fullscreen</button>
         <br>
         <button onclick="ADAPTER.setOrientation('landscape')">landscape</button>
         <button onclick="ADAPTER.setOrientation('portrait')">portrait</button>
