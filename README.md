@@ -1,4 +1,4 @@
-![ADAPTER logo](https://github.com/PuRainDev/ADAPTER-android-platform-source/blob/main/adap_logo.png?raw=true)
+![ADAPTER logo](https://github.com/PuRainDev/ADAPTER-android-platform-source/raw/main/adap_logo.png?raw=true)
 # ADAPTER android platform source code
  This is a dev branch for next update of ADAPTER
  
