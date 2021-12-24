@@ -17,8 +17,11 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -49,6 +52,7 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.onesignal.OneSignal;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 public class FullscreenActivity extends AppCompatActivity {
 
@@ -104,8 +108,20 @@ public class FullscreenActivity extends AppCompatActivity {
         mWebView.setLongClickable(false);
         mWebView.setWebContentsDebuggingEnabled(true);
         mWebView.setHapticFeedbackEnabled(false);
-        mWebView.addJavascriptInterface(new ADAPTERBridge(this, FullscreenActivity.this, mWebView), "ADAPTER");
 
+        mWebView.getRootView().getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                //Add your own code here
+                ViewGroup.LayoutParams initialParams = mWebView.getLayoutParams();
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams)initialParams;
+                lp.setMargins(0,-getSystemKeyboardOffset(),0,0);
+                mWebView.setLayoutParams(lp);
+            }
+        });
+
+        mWebView.addJavascriptInterface(new ADAPTERBridge(this, FullscreenActivity.this, mWebView), "ADAPTER");
+        getWindow().setGravity(Gravity.TOP|Gravity.CENTER_HORIZONTAL);
 
 
             mWebView.setWebViewClient(new WebViewClient() {
@@ -174,6 +190,17 @@ public class FullscreenActivity extends AppCompatActivity {
         });
     }
 
+    public int getSystemKeyboardOffset() {
+        try {
+            final InputMethodManager manager = (InputMethodManager) FullscreenActivity.this.getSystemService(Context.INPUT_METHOD_SERVICE);
+            final Method windowHeightMethod = InputMethodManager.class.getMethod("getInputMethodWindowVisibleHeight");
+            final int height = (int) windowHeightMethod.invoke(manager);
+            Log.e("h", String.valueOf(height));
+            return height;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 
     @Override
     protected void onDestroy() {
@@ -187,7 +214,7 @@ public class FullscreenActivity extends AppCompatActivity {
         super.onResume();
         View decorView = getWindow().getDecorView();
         switch(mAppSingletone.getFullscreenMode()) {
-            case "Full":
+            case "full":
                 decorView.setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                                 // Set the content to appear under the system bars so that the
@@ -199,7 +226,7 @@ public class FullscreenActivity extends AppCompatActivity {
                                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                                 | View.SYSTEM_UI_FLAG_FULLSCREEN);
                 break;
-            case "Partially":
+            case "partially":
                 decorView.setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -207,7 +234,7 @@ public class FullscreenActivity extends AppCompatActivity {
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
                 break;
-            case "Off":
+            case "off":
                 decorView.setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
