@@ -195,7 +195,6 @@ public class FullscreenActivity extends AppCompatActivity {
             final InputMethodManager manager = (InputMethodManager) FullscreenActivity.this.getSystemService(Context.INPUT_METHOD_SERVICE);
             final Method windowHeightMethod = InputMethodManager.class.getMethod("getInputMethodWindowVisibleHeight");
             final int height = (int) windowHeightMethod.invoke(manager);
-            Log.e("h", String.valueOf(height));
             return height;
         } catch (Exception e) {
             return 0;
